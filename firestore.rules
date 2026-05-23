@@ -2,10 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Invitation list — public read (to check status), no client writes
+    // Invitation list
+    // - Public read (anyone can check their own invite status)
+    // - Admin can approve/update (verified by Firebase Auth token email)
     match /invitations/{email} {
       allow read: if true;
-      allow write: if false;
+      allow write: if request.auth != null &&
+        request.auth.token.email == "sudip88.net@gmail.com";
     }
 
     // User profile — owner only
@@ -13,7 +16,7 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Usage / rate limit counters — written by server (Admin SDK) only
+    // Usage / rate limit counters — server (Admin SDK) only
     match /usage/{docId} {
       allow read, write: if false;
     }

@@ -1,16 +1,24 @@
-const STORE_KEY = "zen_catalogues";
+import { useAuth } from "../auth/AuthProvider";
+
+const storeKey = (uid) => `zen_catalogues_${uid}`;
 
 export function useCatalogue() {
+  const { user } = useAuth();
+  const uid = user?.uid;
+
   const getAll = () => {
+    if (!uid) return [];
     try {
-      return JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+      return JSON.parse(localStorage.getItem(storeKey(uid)) || "[]");
     } catch {
       return [];
     }
   };
 
-  const save = (list) =>
-    localStorage.setItem(STORE_KEY, JSON.stringify(list));
+  const save = (list) => {
+    if (!uid) return;
+    localStorage.setItem(storeKey(uid), JSON.stringify(list));
+  };
 
   const createCatalogue = ({ skillName, educators, videos }) => {
     const cat = {

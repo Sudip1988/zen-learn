@@ -4,6 +4,13 @@ import { getAuthToken } from "./auth";
 
 const EDUCATOR_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+function extractJSONArray(text) {
+  const start = text.indexOf("[");
+  const end = text.lastIndexOf("]");
+  if (start === -1 || end === -1) throw new Error("No JSON array in Claude response");
+  return text.slice(start, end + 1);
+}
+
 // ─── Proxy call to /api/claude ────────────────────────────────────────────────
 async function callClaude(prompt, model, maxTokens, action = null) {
   const token = await getAuthToken();
@@ -75,7 +82,7 @@ Return ONLY valid JSON array (no markdown fences, no preamble):
 ]`;
 
   const response = await callClaude(prompt, claudeModel, 6000, "discoverEducators");
-  const educators = JSON.parse(response.replace(/```json|```/g, "").trim());
+  const educators = JSON.parse(extractJSONArray(response));
   setCache(cacheKey, educators);
   return educators;
 }
@@ -109,7 +116,7 @@ ${videoList}
 Return ONLY a JSON array of valid 0-based indices. Example: [0, 2, 5, 11]`;
 
   const response = await callClaude(prompt, claudeModel, 1000);
-  const approved = new Set(JSON.parse(response.replace(/```json|```/g, "").trim()));
+  const approved = new Set(JSON.parse(extractJSONArray(response)));
   return videos.filter((_, i) => i >= 150 || approved.has(i));
 }
 
@@ -128,5 +135,5 @@ Suggest 5 alternative YouTube search queries to find DIFFERENT educators and vid
 Return ONLY a JSON array of query strings. Example: ["advanced ${skillQuery} techniques", "${skillQuery} from first principles"]`;
 
   const response = await callClaude(prompt, claudeModel, 500);
-  return JSON.parse(response.replace(/```json|```/g, "").trim());
+  return JSON.parse(extractJSONArray(response));
 }

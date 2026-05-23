@@ -94,8 +94,9 @@ export function useDiscovery() {
     const withDetails = unique.map((v) => ({ ...v, ...(detailMap[v.id] || {}) }));
     const enriched = withDetails.filter(
       (v) =>
-        (v.durationSeconds || 0) >= config.minVideoDurationSeconds &&
-        (v.durationSeconds || 0) <= config.maxVideoDurationSeconds
+        !v.durationSeconds ||
+        (v.durationSeconds >= config.minVideoDurationSeconds &&
+          v.durationSeconds <= config.maxVideoDurationSeconds)
     );
     console.log(
       `[Discovery] Step 4 — enriched: ${withDetails.length}, after duration gate: ${enriched.length}`

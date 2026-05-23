@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "PowerShell(vercel *)",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:3001/api/youtube?_r=search&q=test\" -UseBasicParsing -ErrorAction SilentlyContinue | Select-Object StatusCode, StatusDescription)",
+      "PowerShell(Stop-Process *)"
+    ]
+  }
+}

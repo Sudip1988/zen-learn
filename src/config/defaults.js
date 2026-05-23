@@ -1,6 +1,6 @@
 export const DEFAULT_CONFIG = {
   claudeModel: "claude-sonnet-4-20250514",
-  educatorCount: 30,
+  educatorCount: 5,
   videosPerSkill: 200,
   minVideoDurationSeconds: 180,
   maxVideoDurationSeconds: 14400,

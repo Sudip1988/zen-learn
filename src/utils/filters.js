@@ -73,11 +73,6 @@ export function sanitizeResults(items) {
       console.log(`[Filter] Prohibited title: "${title}"`);
       return false;
     }
-    // Only reject if description is completely absent — short descriptions are ok
-    if (desc.length === 0) {
-      console.log(`[Filter] Empty description: "${title}"`);
-      return false;
-    }
     return true;
   });
   if (input.length !== result.length) {

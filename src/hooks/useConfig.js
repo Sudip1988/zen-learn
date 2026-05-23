@@ -1,11 +1,16 @@
+import { useAuth } from "../auth/AuthProvider";
 import { DEFAULT_CONFIG } from "../config/defaults";
 
-const PREFS_KEY = "zen_prefs";
+const prefsKey = (uid) => `zen_prefs_${uid}`;
 
 export function useConfig() {
+  const { user } = useAuth();
+  const uid = user?.uid;
+
   const getConfig = () => {
+    if (!uid) return { ...DEFAULT_CONFIG };
     try {
-      const s = localStorage.getItem(PREFS_KEY);
+      const s = localStorage.getItem(prefsKey(uid));
       return s ? { ...DEFAULT_CONFIG, ...JSON.parse(s) } : { ...DEFAULT_CONFIG };
     } catch {
       return { ...DEFAULT_CONFIG };
@@ -13,8 +18,9 @@ export function useConfig() {
   };
 
   const setConfig = (updates) => {
+    if (!uid) return;
     const current = getConfig();
-    localStorage.setItem(PREFS_KEY, JSON.stringify({ ...current, ...updates }));
+    localStorage.setItem(prefsKey(uid), JSON.stringify({ ...current, ...updates }));
   };
 
   return { getConfig, setConfig };
