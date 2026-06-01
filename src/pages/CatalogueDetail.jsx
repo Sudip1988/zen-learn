@@ -36,9 +36,6 @@ export function CatalogueDetail() {
   const [searchQuery, setSearchQuery] = useState("");
   const [remixOpen, setRemixOpen] = useState(false);
   const [isRediscovering, setIsRediscovering] = useState(false);
-  const [tick, setTick] = useState(0);
-
-  const refresh = () => setTick((n) => n + 1);
 
   const catalogue = getCatalogue(id);
 
@@ -55,7 +52,7 @@ export function CatalogueDetail() {
     }
     return videos;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogue, sortMode, searchQuery, tick]);
+  }, [catalogue, sortMode, searchQuery]);
 
   if (!catalogue) {
     return (
@@ -77,12 +74,12 @@ export function CatalogueDetail() {
     );
   }
 
-  const handlePin = (videoId) => { pinVideo(id, videoId); refresh(); addToast("Pinned", "success"); };
-  const handleUnpin = (videoId) => { unpinVideo(id, videoId); refresh(); };
-  const handleRemove = (videoId) => { removeVideo(id, videoId); refresh(); addToast("Removed", "info"); };
-  const handleRestore = (videoId) => { restoreVideo(id, videoId); refresh(); addToast("Restored", "success"); };
-  const handleSetPinOrder = (newPinnedIds) => { updateCatalogue(id, { pinnedVideoIds: newPinnedIds }); refresh(); };
-  const handleResetOrder = () => { resetOrder(id); refresh(); };
+  const handlePin = (videoId) => { pinVideo(id, videoId); addToast("Pinned", "success"); };
+  const handleUnpin = (videoId) => { unpinVideo(id, videoId); };
+  const handleRemove = (videoId) => { removeVideo(id, videoId); addToast("Removed", "info"); };
+  const handleRestore = (videoId) => { restoreVideo(id, videoId); addToast("Restored", "success"); };
+  const handleSetPinOrder = (newPinnedIds) => { updateCatalogue(id, { pinnedVideoIds: newPinnedIds }); };
+  const handleResetOrder = () => { resetOrder(id); };
 
   const handleRediscover = async () => {
     const freshCat = getCatalogue(id);
@@ -90,7 +87,6 @@ export function CatalogueDetail() {
     setIsRediscovering(true);
     try {
       const result = await rediscover(freshCat);
-      refresh();
       addToast(
         result.newCount > 0
           ? `Added ${result.newCount} new videos`
@@ -103,8 +99,6 @@ export function CatalogueDetail() {
       setIsRediscovering(false);
     }
   };
-
-  const freshCatalogue = getCatalogue(id);
 
   return (
     <>
@@ -177,8 +171,8 @@ export function CatalogueDetail() {
         <VideoFeed
           videos={displayVideos}
           catalogueId={id}
-          pinnedVideoIds={freshCatalogue?.pinnedVideoIds || []}
-          removedVideoIds={freshCatalogue?.removedVideoIds || []}
+          pinnedVideoIds={catalogue?.pinnedVideoIds || []}
+          removedVideoIds={catalogue?.removedVideoIds || []}
           onPin={handlePin}
           onUnpin={handleUnpin}
           onRemove={handleRemove}
@@ -197,9 +191,9 @@ export function CatalogueDetail() {
       )}
 
       {/* Remix / Curation panel */}
-      {remixOpen && freshCatalogue && (
+      {remixOpen && catalogue && (
         <RemixPanel
-          catalogue={freshCatalogue}
+          catalogue={catalogue}
           onClose={() => { setRemixOpen(false); refresh(); }}
           onPin={handlePin}
           onUnpin={handleUnpin}

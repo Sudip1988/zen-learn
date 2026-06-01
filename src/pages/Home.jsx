@@ -8,12 +8,11 @@ import { timeOfDayGreeting } from "../utils/format";
 
 export function Home() {
   const { user, logout } = useAuth();
-  const { getAll, deleteCatalogue } = useCatalogue();
+  const { catalogues, deleteCatalogue } = useCatalogue();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [catalogues, setCatalogues] = useState(() => getAll());
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -33,7 +32,6 @@ export function Home() {
 
   const handleDelete = (id) => {
     deleteCatalogue(id);
-    setCatalogues(getAll());
   };
 
   const firstName = user?.displayName?.split(" ")[0] || "there";
