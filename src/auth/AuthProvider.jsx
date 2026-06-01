@@ -2,9 +2,13 @@ import { createContext, useContext, useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
+
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../api/firebase";
 
@@ -16,6 +20,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    getRedirectResult(auth).catch(() => {});
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
@@ -47,7 +52,12 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  const signInWithGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
+  const signInWithGoogle = () => {
+    const provider = new GoogleAuthProvider();
+    return isMobile
+      ? signInWithRedirect(auth, provider)
+      : signInWithPopup(auth, provider);
+  };
   const logout = () => signOut(auth);
 
   return (
