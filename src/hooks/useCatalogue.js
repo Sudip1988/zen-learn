@@ -1,28 +1,71 @@
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../auth/AuthProvider";
+import {
+  collection, doc, onSnapshot,
+  setDoc, updateDoc, deleteDoc, writeBatch,
+} from "firebase/firestore";
+import { db } from "../api/firebase";
 
-const storeKey = (uid) => `zen_catalogues_${uid}`;
+const LOCAL_KEY = (uid) => `zen_catalogues_${uid}`;
 
 export function useCatalogue() {
   const { user } = useAuth();
   const uid = user?.uid;
+  const [catalogues, setCatalogues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const migrated = useRef(false);
 
-  const getAll = () => {
-    if (!uid) return [];
-    try {
-      return JSON.parse(localStorage.getItem(storeKey(uid)) || "[]");
-    } catch {
-      return [];
+  useEffect(() => {
+    if (!uid) {
+      setCatalogues([]);
+      setLoading(false);
+      return;
     }
-  };
 
-  const save = (list) => {
-    if (!uid) return;
-    localStorage.setItem(storeKey(uid), JSON.stringify(list));
-  };
+    migrated.current = false;
+    const colRef = collection(db, "users", uid, "catalogues");
+
+    const unsub = onSnapshot(colRef, (snap) => {
+      const docs = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+
+      // One-time migration from localStorage on first server-confirmed snapshot
+      if (!migrated.current && !snap.metadata.fromCache) {
+        migrated.current = true;
+        if (docs.length === 0) {
+          const raw = localStorage.getItem(LOCAL_KEY(uid));
+          if (raw) {
+            try {
+              const items = JSON.parse(raw);
+              if (items.length > 0) {
+                const batch = writeBatch(db);
+                for (const cat of items) {
+                  batch.set(doc(colRef, cat.id), cat);
+                }
+                batch.commit().then(() => localStorage.removeItem(LOCAL_KEY(uid)));
+                return; // onSnapshot re-fires with migrated data
+              }
+            } catch { /* ignore */ }
+          }
+        }
+        localStorage.removeItem(LOCAL_KEY(uid));
+      }
+
+      docs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      setCatalogues(docs);
+      setLoading(false);
+    });
+
+    return unsub;
+  }, [uid]);
+
+  const catDoc = (id) => doc(db, "users", uid, "catalogues", id);
+
+  const getAll = () => catalogues;
 
   const createCatalogue = ({ skillName, educators, videos }) => {
+    const id = `cat_${Date.now()}`;
     const cat = {
-      id: `cat_${Date.now()}`,
+      id,
       skillName,
       skillSlug: skillName.toLowerCase().replace(/\W+/g, "_"),
       educators,
@@ -33,20 +76,19 @@ export function useCatalogue() {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    save([cat, ...getAll()]);
+    if (uid) setDoc(catDoc(id), cat);
     return cat;
   };
 
-  const getCatalogue = (id) => getAll().find((c) => c.id === id) || null;
+  const getCatalogue = (id) => catalogues.find((c) => c.id === id) || null;
 
-  const deleteCatalogue = (id) => save(getAll().filter((c) => c.id !== id));
+  const deleteCatalogue = (id) => {
+    if (uid) deleteDoc(catDoc(id));
+  };
 
-  const updateCatalogue = (id, updates) =>
-    save(
-      getAll().map((c) =>
-        c.id === id ? { ...c, ...updates, updatedAt: Date.now() } : c
-      )
-    );
+  const updateCatalogue = (id, updates) => {
+    if (uid) updateDoc(catDoc(id), { ...updates, updatedAt: Date.now() });
+  };
 
   const pinVideo = (catId, videoId) => {
     const cat = getCatalogue(catId);
@@ -89,11 +131,9 @@ export function useCatalogue() {
   const getDisplayVideos = (cat, sortMode = "relevancy") => {
     const { videos, pinnedVideoIds, removedVideoIds, customOrder } = cat;
     const active = videos.filter((v) => !removedVideoIds.includes(v.id));
-
     const pinned = pinnedVideoIds
       .map((id) => active.find((v) => v.id === id))
       .filter(Boolean);
-
     const rest = active.filter((v) => !pinnedVideoIds.includes(v.id));
 
     let orderedRest;
@@ -118,6 +158,8 @@ export function useCatalogue() {
   };
 
   return {
+    catalogues,
+    loading,
     getAll,
     createCatalogue,
     getCatalogue,

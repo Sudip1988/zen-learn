@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, BookOpen } from "lucide-react";
 import { useCatalogue } from "../hooks/useCatalogue";
@@ -8,13 +7,11 @@ import { Header } from "../components/Layout/Header";
 
 export function Catalogues() {
   const navigate = useNavigate();
-  const { getAll, deleteCatalogue } = useCatalogue();
-  const [catalogues, setCatalogues] = useState(() => getAll());
+  const { catalogues, deleteCatalogue } = useCatalogue();
 
   const handleDelete = (id) => {
     if (!confirm("Delete this catalogue? This cannot be undone.")) return;
     deleteCatalogue(id);
-    setCatalogues(getAll());
   };
 
   return (
