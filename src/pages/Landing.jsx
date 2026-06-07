@@ -5,7 +5,7 @@ import { GoogleSignIn } from "../auth/GoogleSignIn";
 import { Sparkles } from "lucide-react";
 
 export function Landing() {
-  const { user, inviteStatus, loading } = useAuth();
+  const { user, inviteStatus, loading, signInError } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,6 +38,11 @@ export function Landing() {
 
         <div className="flex flex-col items-center gap-4 w-full max-w-[280px]">
           <GoogleSignIn />
+          {signInError && (
+            <p className="text-xs text-red-400 font-mono text-center leading-relaxed">
+              {signInError}
+            </p>
+          )}
           <Link
             to="/request-invite"
             className="text-sm text-zen-muted hover:text-zen-text-secondary transition-colors font-mono"

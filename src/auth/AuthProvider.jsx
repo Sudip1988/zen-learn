@@ -7,8 +7,6 @@ import {
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
-
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../api/firebase";
 
@@ -18,11 +16,18 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [inviteStatus, setInviteStatus] = useState(null); // null | "approved" | "pending" | "none"
   const [loading, setLoading] = useState(true);
+  const [signInError, setSignInError] = useState(null);
 
   useEffect(() => {
-    getRedirectResult(auth).catch(() => {});
+    getRedirectResult(auth).catch((e) => {
+      // Ignore the "no pending redirect" case — that's normal on every page load
+      if (e?.code !== "auth/no-auth-event") {
+        setSignInError(e?.message ?? "Sign-in failed. Please try again.");
+      }
+    });
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        setSignInError(null);
         setUser(firebaseUser);
         try {
           const snap = await getDoc(doc(db, "invitations", firebaseUser.email));
@@ -52,16 +57,25 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  const signInWithGoogle = () => {
+  const signInWithGoogle = async () => {
+    setSignInError(null);
     const provider = new GoogleAuthProvider();
-    return isMobile
-      ? signInWithRedirect(auth, provider)
-      : signInWithPopup(auth, provider);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    try {
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+    } catch (e) {
+      setSignInError(e?.message ?? "Sign-in failed. Please try again.");
+    }
   };
+
   const logout = () => signOut(auth);
 
   return (
-    <AuthContext.Provider value={{ user, inviteStatus, loading, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, inviteStatus, loading, signInError, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
