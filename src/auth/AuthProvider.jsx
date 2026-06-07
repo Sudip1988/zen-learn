@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
-  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   onAuthStateChanged,
@@ -60,13 +59,8 @@ export function AuthProvider({ children }) {
   const signInWithGoogle = async () => {
     setSignInError(null);
     const provider = new GoogleAuthProvider();
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     try {
-      if (isMobile) {
-        await signInWithRedirect(auth, provider);
-      } else {
-        await signInWithPopup(auth, provider);
-      }
+      await signInWithRedirect(auth, provider);
     } catch (e) {
       setSignInError(e?.message ?? "Sign-in failed. Please try again.");
     }
