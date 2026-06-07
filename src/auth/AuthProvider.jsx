@@ -25,12 +25,17 @@ export function AuthProvider({ children }) {
   const [signInError, setSignInError] = useState(null);
 
   useEffect(() => {
+    const redirectPending = localStorage.getItem("zen_redirect_pending") === "1";
+    localStorage.removeItem("zen_redirect_pending");
+
     getRedirectResult(auth).catch((e) => {
-      // Ignore the "no pending redirect" case — that's normal on every page load
-      if (e?.code !== "auth/no-auth-event") {
-        setSignInError(friendlyError(e));
-      }
+      // Only suppress auth/no-auth-event when no redirect was attempted.
+      // If a redirect WAS pending and we still get this, iOS cleared our auth
+      // state mid-redirect — surface it so the user sees something.
+      if (e?.code === "auth/no-auth-event" && !redirectPending) return;
+      setSignInError(friendlyError(e));
     });
+
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setSignInError(null);
@@ -67,8 +72,10 @@ export function AuthProvider({ children }) {
     setSignInError(null);
     const provider = new GoogleAuthProvider();
     try {
+      localStorage.setItem("zen_redirect_pending", "1");
       await signInWithRedirect(auth, provider);
     } catch (e) {
+      localStorage.removeItem("zen_redirect_pending");
       setSignInError(friendlyError(e));
     }
   };
