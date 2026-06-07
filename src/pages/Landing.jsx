@@ -5,7 +5,7 @@ import { GoogleSignIn } from "../auth/GoogleSignIn";
 import { Sparkles } from "lucide-react";
 
 export function Landing() {
-  const { user, inviteStatus, loading } = useAuth();
+  const { user, inviteStatus, loading, signInError } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,8 +36,14 @@ export function Landing() {
           AI-curated educational catalogues. No recommendations. No rabbit holes. Just learning.
         </p>
 
-        <div className="flex flex-col items-center gap-4 w-full max-w-[280px]">
+        <div className="flex flex-col items-center gap-4 w-full max-w-[320px]">
           <GoogleSignIn />
+          {signInError && (
+            <div className="w-full bg-red-500/15 border-2 border-red-500/50 rounded-xl px-4 py-4">
+              <p className="text-sm font-bold text-red-400 mb-2">⚠ Sign-in failed</p>
+              <p className="text-xs text-red-200 leading-relaxed break-all select-all">{signInError}</p>
+            </div>
+          )}
           <Link
             to="/request-invite"
             className="text-sm text-zen-muted hover:text-zen-text-secondary transition-colors font-mono"
@@ -48,7 +54,7 @@ export function Landing() {
       </div>
 
       <footer className="p-6 text-center text-[10px] text-zen-muted font-mono tracking-wide">
-        invite-only beta · no ads · no algorithm
+        invite-only beta · no ads · no algorithm · v{__APP_VERSION__}
       </footer>
     </div>
   );
