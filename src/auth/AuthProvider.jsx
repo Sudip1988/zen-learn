@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   onAuthStateChanged,
@@ -13,14 +14,17 @@ const AuthContext = createContext(null);
 
 function friendlyError(e) {
   if (e?.code === "auth/unauthorized-domain") {
-    return `This domain is not authorised in Firebase. Add "${location.hostname}" to Firebase Console → Authentication → Authorized domains.`;
+    return `Domain not authorised in Firebase — add "${location.hostname}" to Firebase Console → Authentication → Authorized domains.`;
   }
-  return friendlyError(e);
+  if (e?.code === "auth/no-auth-event") {
+    return `Sign-in state was lost during redirect (auth/no-auth-event). Try again or use a different browser.`;
+  }
+  return e?.message ?? "Sign-in failed. Please try again.";
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [inviteStatus, setInviteStatus] = useState(null); // null | "approved" | "pending" | "none"
+  const [inviteStatus, setInviteStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [signInError, setSignInError] = useState(null);
 
@@ -29,9 +33,6 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("zen_redirect_pending");
 
     getRedirectResult(auth).catch((e) => {
-      // Only suppress auth/no-auth-event when no redirect was attempted.
-      // If a redirect WAS pending and we still get this, iOS cleared our auth
-      // state mid-redirect — surface it so the user sees something.
       if (e?.code === "auth/no-auth-event" && !redirectPending) return;
       setSignInError(friendlyError(e));
     });
@@ -71,9 +72,14 @@ export function AuthProvider({ children }) {
   const signInWithGoogle = async () => {
     setSignInError(null);
     const provider = new GoogleAuthProvider();
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     try {
-      localStorage.setItem("zen_redirect_pending", "1");
-      await signInWithRedirect(auth, provider);
+      if (isMobile) {
+        localStorage.setItem("zen_redirect_pending", "1");
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
     } catch (e) {
       localStorage.removeItem("zen_redirect_pending");
       setSignInError(friendlyError(e));
