@@ -39,9 +39,10 @@ export function Landing() {
         <div className="flex flex-col items-center gap-4 w-full max-w-[280px]">
           <GoogleSignIn />
           {signInError && (
-            <p className="text-xs text-red-400 font-mono text-center leading-relaxed">
-              {signInError}
-            </p>
+            <div className="w-full bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+              <p className="text-xs font-mono font-bold text-red-400 mb-1">Sign-in error</p>
+              <p className="text-xs text-red-300 leading-relaxed break-words">{signInError}</p>
+            </div>
           )}
           <Link
             to="/request-invite"

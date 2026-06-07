@@ -11,6 +11,13 @@ import { auth, db } from "../api/firebase";
 
 const AuthContext = createContext(null);
 
+function friendlyError(e) {
+  if (e?.code === "auth/unauthorized-domain") {
+    return `This domain is not authorised in Firebase. Add "${location.hostname}" to Firebase Console → Authentication → Authorized domains.`;
+  }
+  return friendlyError(e);
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [inviteStatus, setInviteStatus] = useState(null); // null | "approved" | "pending" | "none"
@@ -21,7 +28,7 @@ export function AuthProvider({ children }) {
     getRedirectResult(auth).catch((e) => {
       // Ignore the "no pending redirect" case — that's normal on every page load
       if (e?.code !== "auth/no-auth-event") {
-        setSignInError(e?.message ?? "Sign-in failed. Please try again.");
+        setSignInError(friendlyError(e));
       }
     });
     return onAuthStateChanged(auth, async (firebaseUser) => {
@@ -62,7 +69,7 @@ export function AuthProvider({ children }) {
     try {
       await signInWithRedirect(auth, provider);
     } catch (e) {
-      setSignInError(e?.message ?? "Sign-in failed. Please try again.");
+      setSignInError(friendlyError(e));
     }
   };
 
