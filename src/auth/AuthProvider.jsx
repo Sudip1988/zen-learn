@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
@@ -16,8 +14,11 @@ function friendlyError(e) {
   if (e?.code === "auth/unauthorized-domain") {
     return `Domain not authorised in Firebase — add "${location.hostname}" to Firebase Console → Authentication → Authorized domains.`;
   }
-  if (e?.code === "auth/no-auth-event") {
-    return `Sign-in state was lost during redirect (auth/no-auth-event). Try again or use a different browser.`;
+  if (e?.code === "auth/popup-blocked") {
+    return "Sign-in popup was blocked by the browser. Please allow popups for this site and try again.";
+  }
+  if (e?.code === "auth/popup-closed-by-user") {
+    return null; // user dismissed — not an error
   }
   return e?.message ?? "Sign-in failed. Please try again.";
 }
@@ -29,14 +30,6 @@ export function AuthProvider({ children }) {
   const [signInError, setSignInError] = useState(null);
 
   useEffect(() => {
-    const redirectPending = localStorage.getItem("zen_redirect_pending") === "1";
-    localStorage.removeItem("zen_redirect_pending");
-
-    getRedirectResult(auth).catch((e) => {
-      if (e?.code === "auth/no-auth-event" && !redirectPending) return;
-      setSignInError(friendlyError(e));
-    });
-
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setSignInError(null);
@@ -72,17 +65,11 @@ export function AuthProvider({ children }) {
   const signInWithGoogle = async () => {
     setSignInError(null);
     const provider = new GoogleAuthProvider();
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     try {
-      if (isMobile) {
-        localStorage.setItem("zen_redirect_pending", "1");
-        await signInWithRedirect(auth, provider);
-      } else {
-        await signInWithPopup(auth, provider);
-      }
+      await signInWithPopup(auth, provider);
     } catch (e) {
-      localStorage.removeItem("zen_redirect_pending");
-      setSignInError(friendlyError(e));
+      const msg = friendlyError(e);
+      if (msg) setSignInError(msg);
     }
   };
 
